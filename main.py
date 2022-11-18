@@ -23,8 +23,6 @@ if GH_TOKEN is None:
     logging.warning("not Github token set, likely to hit api limit")
 
 
-
-
 def repo_filenames(repo: git.Git) -> List[str]:
     return repo.ls_files().split("\n")
 
@@ -136,7 +134,7 @@ def get_unique_issues(
 
 
 def get_issue_locations(
-    issues: Dict[str, List[FileIssue]], closed_issue: FileIssue
+    unique_issues: Dict[str, List[FileIssue]], closed_issue: FileIssue
 ) -> List[Tuple[str, int]]:
     """Return all the name and line number of all the files that contain the issue"""
     locations = []
@@ -169,17 +167,13 @@ if __name__ == "__main__":
     for (issue, gh_issue) in closed_issues:
         locations = get_issue_locations(unique_issues, issue)
 
-        
         files_str = "\n".join(
             f"  - [{fn}:{ln}]({server_url}/{GH_REPO}/blob/{repo_ref}/{fn}#L{ln})"
             for fn, ln in locations
         )
         body = f"""Upstream issue {issue.ref} referenced in the file{'s' if len(locations) > 1 else ''}:
-
 {files_str}
-
 has been closed.
-
 The code referencing this issue could potentially be updated.
     """
         for repo_issue in repo_issues:
@@ -192,7 +186,8 @@ The code referencing this issue could potentially be updated.
                     )
                     break
             else:
-                logging.info(f"Would edit issue number {repo_issue.number} in repo `{GH_REPO}`:\nUpstream issue {issue.ref}\n\n{body}"),
+                logging.info(
+                    f"Would edit issue number {repo_issue.number} in repo `{GH_REPO}`:\nUpstream issue {issue.ref}\n\n{body}"),
 
         else:
             if not DRY_RUN:
@@ -202,4 +197,5 @@ The code referencing this issue could potentially be updated.
                     labels=LABELS,
                 )
             else:
-                logging.info(f"Would create issue in repo '{GH_REPO}':\nUpstream issue {issue.ref}\n\n{body}"),
+                logging.info(
+                    f"Would create issue in repo '{GH_REPO}':\nUpstream issue {issue.ref}\n\n{body}"),
