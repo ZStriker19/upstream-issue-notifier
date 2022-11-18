@@ -167,35 +167,38 @@ if __name__ == "__main__":
     for (issue, gh_issue) in closed_issues:
         locations = get_issue_locations(unique_issues, issue)
 
+        
         files_str = "\n".join(
             f"  - [{fn}:{ln}]({server_url}/{GH_REPO}/blob/{repo_ref}/{fn}#L{ln})"
             for fn, ln in locations
         )
         body = f"""Upstream issue {issue.ref} referenced in the file{'s' if len(locations) > 1 else ''}:
+
 {files_str}
+
 has been closed.
+
 The code referencing this issue could potentially be updated.
     """
-        for repo_issue in repo_issues:
-            if not DRY_RUN:
+        if not DRY_RUN:
+            for repo_issue in repo_issues:
                 if issue.ref in repo_issue.title or issue.ref in repo_issue.body:
                     # repo issue already exists for the upstream issue, update it
                     # in case any references have been removed.
                     repo_issue.edit(
                         body=body,
                     )
-                    break
-            else:
-                logging.info(
-                    f"Would edit issue number {repo_issue.number} in repo `{GH_REPO}`:\nUpstream issue {issue.ref}\n\n{body}"),
 
+                else:
+                    gh_repo.create_issue(
+                        title=f"Upstream issue {issue.ref} closed",
+                        body=body,
+                        labels=LABELS,
+                    )
         else:
-            if not DRY_RUN:
-                gh_repo.create_issue(
-                    title=f"Upstream issue {issue.ref} closed",
-                    body=body,
-                    labels=LABELS,
-                )
-            else:
-                logging.info(
-                    f"Would create issue in repo '{GH_REPO}':\nUpstream issue {issue.ref}\n\n{body}"),
+            for repo_issue in repo_issues:
+                if issue.ref in repo_issue.title or issue.ref in repo_issue.body:
+                    logging.info(f"Would edit issue number {repo_issue.number} in repo `{GH_REPO}`:\nUpstream issue {issue.ref}\n\n{body}")
+
+                else:
+                    logging.info(f"Would create issue in repo '{GH_REPO}':\nUpstream issue {issue.ref}\n\n{body}")
